@@ -71,7 +71,7 @@ export default function SettingsPage() {
                 <SettingsIcon className="text-blue-400" /> ตั้งค่าระบบ (System Settings)
             </h1>
 
-            <div className="bg-[#1e1b4b]/30 border border-white/10 rounded-2xl p-8 max-w-2xl">
+            <div className="bg-[#1e1b4b] border border-white/10 rounded-2xl p-8 max-w-2xl">
                 <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                     <Send size={20} className="text-blue-400" /> ตั้งค่า Telegram
                 </h2>

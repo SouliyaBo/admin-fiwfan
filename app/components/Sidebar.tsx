@@ -37,7 +37,7 @@ export default function Sidebar() {
     ];
 
     return (
-        <aside className="w-full lg:w-72 bg-[#1e1b4b]/30 border-r border-white/10 p-6 flex flex-col gap-6 h-full min-h-[calc(100vh-64px)]">
+        <aside className="w-full lg:w-72 bg-[#1e1b4b] border-r border-white/10 p-6 flex flex-col gap-6 h-full min-h-[calc(100vh-64px)]">
 
             {/* Quick Stats or Info */}
             <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/10 rounded-2xl p-5">
