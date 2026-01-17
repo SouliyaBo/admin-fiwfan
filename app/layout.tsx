@@ -14,8 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ระบบจัดการหลังบ้าน | Admin Panel",
+  title: "FiwFan Admin | ระบบจัดการหลังบ้าน",
   description: "FiwFan Admin Panel",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

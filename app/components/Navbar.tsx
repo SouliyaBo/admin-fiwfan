@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut, ShieldCheck } from "lucide-react";
+import Image from "next/image";
+import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -24,11 +25,11 @@ export default function Navbar() {
         <nav className="bg-[#1e1b4b] border-b border-white/10 sticky top-0 z-50 h-16">
             <div className="container mx-auto px-6 h-full flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                    <div className="bg-blue-600/20 p-2 rounded-lg">
-                        <ShieldCheck className="text-blue-400" size={24} />
+                    <div className="bg-white/10 p-1.5 rounded-lg border border-white/10">
+                        <Image src="/icon.svg" alt="FiwFan Admin" width={24} height={24} className="w-6 h-6" />
                     </div>
-                    <span className="text-xl font-bold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-                        Admin Panel
+                    <span className="text-xl font-bold bg-gradient-to-r from-white to-pink-200 bg-clip-text text-transparent">
+                        FiwFan Admin
                     </span>
                 </div>
 
