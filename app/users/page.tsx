@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "../../lib/constants";
 import { getImageUrl } from "../../lib/images";
-import { Search, ShieldAlert, CheckCircle, Ban, Loader2, User as UserIcon, Shield } from "lucide-react";
+import { Search, ShieldAlert, CheckCircle, Ban, Loader2, User as UserIcon, Shield, X, Eye } from "lucide-react";
 
 export default function UsersPage() {
     const router = useRouter();
@@ -14,6 +14,7 @@ export default function UsersPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [kycReviewUser, setKycReviewUser] = useState<any>(null); // User currently being reviewed
 
     useEffect(() => {
         // Auth check
@@ -118,6 +119,54 @@ export default function UsersPage() {
         }
     };
 
+    const handleKycAction = async (status: 'APPROVED' | 'REJECTED') => {
+        if (!kycReviewUser) return;
+        const userId = kycReviewUser._id;
+        const creatorId = kycReviewUser.creatorProfile._id;
+
+        if (!confirm(`คุณแน่ใจหรือไม่ที่จะ ${status === 'APPROVED' ? 'อนุมัติ' : 'ปฏิเสธ'} คำขอนี้?`)) return;
+
+        try {
+            setProcessingId(userId);
+            const token = localStorage.getItem("token");
+
+            // 1. Update verificationStatus
+            // 1. Update verificationStatus
+            const res = await fetch(`${API_BASE_URL}/creators/${creatorId}/verification`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    verificationStatus: status,
+                    isVerified: status === 'APPROVED'
+                })
+            });
+
+            if (res.ok) {
+                setUsers(prev => prev.map(u => {
+                    if (u._id === userId) {
+                        return {
+                            ...u,
+                            creatorProfile: {
+                                ...u.creatorProfile,
+                                verificationStatus: status,
+                                isVerified: status === 'APPROVED'
+                            }
+                        };
+                    }
+                    return u;
+                }));
+                setKycReviewUser(null); // Close modal
+            }
+        } catch (error) {
+            console.error("Failed to update KYC status", error);
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#020617] text-white font-sans">
             <main className="container mx-auto px-6 py-8 max-w-6xl">
@@ -213,10 +262,19 @@ export default function UsersPage() {
                                                 {user.role === 'CREATOR' && user.creatorProfile && (
                                                     <button
                                                         onClick={() => toggleCreatorVerification(user._id, user.creatorProfile)}
-                                                        disabled={processingId === user._id}
-                                                        className={`px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1 ${user.creatorProfile.isVerified ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20' : 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'}`}
+                                                        disabled={processingId === user._id || user.creatorProfile.verificationStatus === 'PENDING'}
+                                                        className={`px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1 ${user.creatorProfile.isVerified ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20' : 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'} ${user.creatorProfile.verificationStatus === 'PENDING' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                     >
                                                         {user.creatorProfile.isVerified ? 'Hide Profile' : 'Show Profile'}
+                                                    </button>
+                                                )}
+
+                                                {user.role === 'CREATOR' && user.creatorProfile?.verificationStatus === 'PENDING' && (
+                                                    <button
+                                                        onClick={() => setKycReviewUser(user)}
+                                                        className="px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1 bg-orange-500 text-white hover:bg-orange-600 animate-pulse"
+                                                    >
+                                                        <ShieldAlert size={14} /> Review KYC
                                                     </button>
                                                 )}
                                             </div>
@@ -232,6 +290,75 @@ export default function UsersPage() {
                     </div>
                 )}
             </main>
+
+            {/* KYC Review Modal */}
+            {kycReviewUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <div className="bg-[#1e1b4b] border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
+                        <div className="flex justify-between items-center p-6 border-b border-white/10 sticky top-0 bg-[#1e1b4b] z-10">
+                            <div>
+                                <h3 className="text-xl font-bold text-white">ตรวจสอบยืนยันตัวตน (KYC Review)</h3>
+                                <p className="text-white/60 text-sm">ผู้ใช้งาน: <span className="text-white font-bold">{kycReviewUser.displayName || kycReviewUser.username}</span></p>
+                            </div>
+                            <button onClick={() => setKycReviewUser(null)} className="p-2 hover:bg-white/10 rounded-full transition"><X /></button>
+                        </div>
+
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                                <div className="bg-black/40 p-4 rounded-xl border border-white/5">
+                                    <h4 className="font-bold text-white mb-4 flex items-center gap-2">1. รูปถ่ายคู่กับรหัส (Photo with Code)</h4>
+                                    <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-black/50 mx-auto">
+                                        {kycReviewUser.creatorProfile?.verificationData?.photoWithCodeUrl ? (
+                                            <a href={getImageUrl(kycReviewUser.creatorProfile.verificationData.photoWithCodeUrl)} target="_blank" rel="noopener noreferrer">
+                                                <img
+                                                    src={getImageUrl(kycReviewUser.creatorProfile.verificationData.photoWithCodeUrl)}
+                                                    className="w-full h-full object-contain hover:scale-105 transition duration-500"
+                                                    alt="With Code"
+                                                />
+                                            </a>
+                                        ) : (
+                                            <div className="flex items-center justify-center h-full text-white/30">No Image</div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="bg-black/40 p-4 rounded-xl border border-white/5">
+                                    <h4 className="font-bold text-white mb-4 flex items-center gap-2">2. รูปถ่ายเต็มตัว (Full Body)</h4>
+                                    <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-black/50 mx-auto">
+                                        {kycReviewUser.creatorProfile?.verificationData?.fullBodyPhotoUrl ? (
+                                            <a href={getImageUrl(kycReviewUser.creatorProfile.verificationData.fullBodyPhotoUrl)} target="_blank" rel="noopener noreferrer">
+                                                <img
+                                                    src={getImageUrl(kycReviewUser.creatorProfile.verificationData.fullBodyPhotoUrl)}
+                                                    className="w-full h-full object-contain hover:scale-105 transition duration-500"
+                                                    alt="Full Body"
+                                                />
+                                            </a>
+                                        ) : (
+                                            <div className="flex items-center justify-center h-full text-white/30">No Image</div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-white/10 bg-[#1e1b4b] sticky bottom-0 z-10 flex justify-end gap-4">
+                            <button
+                                onClick={() => handleKycAction('REJECTED')}
+                                className="px-6 py-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl font-bold transition flex items-center gap-2"
+                            >
+                                <Ban size={18} /> ปฏิเสธ (Reject)
+                            </button>
+                            <button
+                                onClick={() => handleKycAction('APPROVED')}
+                                className="px-6 py-3 bg-green-500 text-black hover:bg-green-400 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-green-500/20"
+                            >
+                                <CheckCircle size={18} /> อนุมัติ (Approve)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
