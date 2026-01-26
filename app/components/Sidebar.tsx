@@ -33,6 +33,11 @@ export default function Sidebar() {
             icon: <Settings size={20} />,
             href: "/settings",
         },
+        {
+            title: "จัดการแพ็กเกจ (Plans)",
+            icon: <Wallet size={20} />, // Reusing Wallet icon or maybe another one like Sparkles? Let's use Wallet for now or maybe Star if available, but Wallet fits 'Plans/Pricing'
+            href: "/plans",
+        },
         // Add more menu items here as needed
     ];
 

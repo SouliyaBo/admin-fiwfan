@@ -103,6 +103,94 @@ export default function SettingsPage() {
                     </button>
                 </div>
             </div>
+
+            <div className="bg-[#1e1b4b] border border-white/10 rounded-2xl p-8 max-w-2xl mt-8">
+                <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                    <SettingsIcon size={20} className="text-green-400" /> ตั้งค่าโหมดฟรี (Free Mode)
+                </h2>
+                <FreeModeSettings />
+            </div>
+        </div>
+    );
+}
+
+function FreeModeSettings() {
+    const [isFreeMode, setIsFreeMode] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        fetchSettings();
+    }, []);
+
+    const fetchSettings = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/settings?key=isFreeMode`);
+            const data = await res.json();
+            if (data) {
+                setIsFreeMode(data.value === 'true');
+            }
+        } catch (error) {
+            console.error("Failed to fetch settings:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleToggle = async () => {
+        const newValue = !isFreeMode;
+        setIsSaving(true);
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${API_BASE_URL}/settings`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    key: "isFreeMode",
+                    value: String(newValue),
+                    description: "Enable Free Mode (Bypass subscription checks)"
+                })
+            });
+
+            if (res.ok) {
+                setIsFreeMode(newValue);
+            } else {
+                alert("Failed to save");
+            }
+        } catch (error) {
+            console.error("Error saving settings:", error);
+            alert("Connection error");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (isLoading) return <div className="text-white/50">Loading...</div>;
+
+    return (
+        <div className="flex items-center justify-between">
+            <div>
+                <h3 className="text-white font-medium">เปิดใช้งานโหมดฟรี (Enable Free Mode)</h3>
+                <p className="text-sm text-white/50 mt-1">
+                    เมื่อเปิดใช้งาน ผู้ใช้ทั่วไปสามารถเข้าถึงฟีเจอร์ต่างๆ (เช่น ลงรูป) ได้โดยไม่ต้องซื้อแพ็กเกจ
+                    <br />
+                    (Users can access features without subscription)
+                </p>
+            </div>
+            <button
+                onClick={handleToggle}
+                disabled={isSaving}
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-[#1e1b4b] ${isFreeMode ? 'bg-green-500' : 'bg-gray-600'
+                    }`}
+            >
+                <span
+                    className={`${isFreeMode ? 'translate-x-7' : 'translate-x-1'
+                        } inline-block h-6 w-6 transform rounded-full bg-white transition-transform`}
+                />
+            </button>
         </div>
     );
 }
