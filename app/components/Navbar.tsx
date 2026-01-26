@@ -26,10 +26,10 @@ export default function Navbar() {
             <div className="container mx-auto px-6 h-full flex justify-between items-center">
                 <div className="flex items-center gap-3">
                     <div className="bg-white/10 p-1.5 rounded-lg border border-white/10">
-                        <Image src="/icon.svg" alt="FiwFan Admin" width={24} height={24} className="w-6 h-6" />
+                        <Image src="/icon.svg" alt="Phusao Admin" width={24} height={24} className="w-6 h-6" />
                     </div>
                     <span className="text-xl font-bold bg-gradient-to-r from-white to-pink-200 bg-clip-text text-transparent">
-                        FiwFan Admin
+                        Phusao Admin
                     </span>
                 </div>
 

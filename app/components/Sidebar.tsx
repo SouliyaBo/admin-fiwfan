@@ -29,14 +29,14 @@ export default function Sidebar() {
             href: "/users",
         },
         {
-            title: "ตั้งค่าระบบ",
-            icon: <Settings size={20} />,
-            href: "/settings",
-        },
-        {
             title: "จัดการแพ็กเกจ (Plans)",
             icon: <Wallet size={20} />, // Reusing Wallet icon or maybe another one like Sparkles? Let's use Wallet for now or maybe Star if available, but Wallet fits 'Plans/Pricing'
             href: "/plans",
+        },
+        {
+            title: "ตั้งค่าระบบ",
+            icon: <Settings size={20} />,
+            href: "/settings",
         },
         // Add more menu items here as needed
     ];
@@ -75,16 +75,6 @@ export default function Sidebar() {
                         </Link>
                     );
                 })}
-            </div>
-
-            <div className="mt-auto space-y-1 border-t border-white/10 pt-6">
-                <h3 className="text-xs font-bold text-white/30 uppercase tracking-wider mb-3 px-3">
-                    ตั้งค่า
-                </h3>
-                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/60 hover:bg-white/5 hover:text-white transition text-left">
-                    <Settings size={20} className="text-white/50" />
-                    <span className="font-medium text-sm">ตั้งค่าระบบ (System Settings)</span>
-                </button>
             </div>
         </aside>
     );

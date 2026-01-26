@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FiwFan Admin | ระบบจัดการหลังบ้าน",
-  description: "FiwFan Admin Panel",
+  title: "Phusao Admin | ระบบจัดการหลังบ้าน",
+  description: "Phusao Admin Panel",
   icons: {
     icon: "/icon.svg",
   },
