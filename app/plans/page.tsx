@@ -131,53 +131,114 @@ export default function PlansPage() {
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {plans.map((plan) => (
-                    <div key={plan._id || plan.id} className="bg-[#1e1b4b] border border-white/10 rounded-2xl p-6 relative group hover:border-blue-500/50 transition">
-                        <div className={`absolute top-4 right-4 px-2 py-1 rounded text-xs font-bold ${plan.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                            {plan.isActive ? 'Active' : 'Inactive'}
-                        </div>
-                        <h2 className="text-xl font-bold text-white mb-1">{plan.name}</h2>
-                        <p className="text-white/50 text-sm mb-4">{plan.description}</p>
+            <div className="mb-12">
+                <h2 className="text-xl font-bold text-white/50 mb-6 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-pink-500"></span>
+                    Creator Plans (แพ็กเกจน้องๆ)
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {plans.filter(p => !p.id.startsWith("TOURIST_")).map((plan) => (
+                        <div key={plan._id || plan.id} className="bg-[#1e1b4b] border border-pink-500/20 rounded-2xl p-6 relative group hover:border-pink-500/50 transition shadow-lg shadow-pink-500/5">
+                            <div className={`absolute top-4 right-4 px-2 py-1 rounded text-xs font-bold ${plan.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                {plan.isActive ? 'Active' : 'Inactive'}
+                            </div>
+                            <h2 className="text-xl font-bold text-white mb-1">{plan.name}</h2>
+                            <p className="text-white/50 text-sm mb-4 h-10 overflow-hidden">{plan.description}</p>
 
-                        <div className="bg-black/20 rounded-lg p-3 mb-4">
-                            <div className="text-xs text-white/40 mb-2 uppercase tracking-wide">Prices</div>
-                            <div className="space-y-1">
-                                {plan.prices.map((p, i) => (
-                                    <div key={i} className="flex justify-between text-sm">
-                                        <span className="text-white/70">{p.duration}</span>
-                                        <span className="text-white font-mono">{p.price} THB</span>
-                                    </div>
-                                ))}
+                            <div className="bg-black/20 rounded-lg p-3 mb-4">
+                                <div className="text-xs text-white/40 mb-2 uppercase tracking-wide">Prices</div>
+                                <div className="space-y-1">
+                                    {plan.prices.map((p, i) => (
+                                        <div key={i} className="flex justify-between text-sm">
+                                            <span className="text-white/70">{p.duration}</span>
+                                            <span className="text-white font-mono">{p.price} THB</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="mb-4">
+                                <div className="text-xs text-white/40 mb-2 uppercase tracking-wide">Features</div>
+                                <ul className="text-sm text-white/70 list-disc list-inside h-20 overflow-hidden">
+                                    {plan.features.slice(0, 3).map((f, i) => (
+                                        <li key={i} className="truncate">{f}</li>
+                                    ))}
+                                    {plan.features.length > 3 && <li className="text-white/30 italic">+{plan.features.length - 3} more</li>}
+                                </ul>
+                            </div>
+
+                            <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-white/10">
+                                <button
+                                    onClick={() => handleEdit(plan)}
+                                    className="p-2 hover:bg-white/5 rounded-lg text-white/70 hover:text-blue-400 transition"
+                                >
+                                    <Edit size={18} />
+                                </button>
+                                <button
+                                    onClick={() => plan._id && handleDelete(plan._id)}
+                                    className="p-2 hover:bg-white/5 rounded-lg text-white/70 hover:text-red-400 transition"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
                             </div>
                         </div>
+                    ))}
+                </div>
+            </div>
 
-                        <div className="mb-4">
-                            <div className="text-xs text-white/40 mb-2 uppercase tracking-wide">Features</div>
-                            <ul className="text-sm text-white/70 list-disc list-inside">
-                                {plan.features.slice(0, 3).map((f, i) => (
-                                    <li key={i} className="truncate">{f}</li>
-                                ))}
-                                {plan.features.length > 3 && <li className="text-white/30 italic">+{plan.features.length - 3} more</li>}
-                            </ul>
-                        </div>
+            <div className="mb-12">
+                <h2 className="text-xl font-bold text-white/50 mb-6 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    Tourist Plans (แพ็กเกจนักท่องเที่ยว)
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {plans.filter(p => p.id.startsWith("TOURIST_")).map((plan) => (
+                        <div key={plan._id || plan.id} className="bg-[#0f172a] border border-blue-500/20 rounded-2xl p-6 relative group hover:border-blue-500/50 transition shadow-lg shadow-blue-500/5">
+                            <div className={`absolute top-4 right-4 px-2 py-1 rounded text-xs font-bold ${plan.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                {plan.isActive ? 'Active' : 'Inactive'}
+                            </div>
+                            <h2 className="text-xl font-bold text-white mb-1">{plan.name}</h2>
+                            <p className="text-white/50 text-sm mb-4 h-10 overflow-hidden">{plan.description}</p>
 
-                        <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-white/10">
-                            <button
-                                onClick={() => handleEdit(plan)}
-                                className="p-2 hover:bg-white/5 rounded-lg text-white/70 hover:text-blue-400 transition"
-                            >
-                                <Edit size={18} />
-                            </button>
-                            <button
-                                onClick={() => plan._id && handleDelete(plan._id)}
-                                className="p-2 hover:bg-white/5 rounded-lg text-white/70 hover:text-red-400 transition"
-                            >
-                                <Trash2 size={18} />
-                            </button>
+                            <div className="bg-black/20 rounded-lg p-3 mb-4">
+                                <div className="text-xs text-white/40 mb-2 uppercase tracking-wide">Prices</div>
+                                <div className="space-y-1">
+                                    {plan.prices.map((p, i) => (
+                                        <div key={i} className="flex justify-between text-sm">
+                                            <span className="text-white/70">{p.duration}</span>
+                                            <span className="text-white font-mono">{p.price} THB</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="mb-4">
+                                <div className="text-xs text-white/40 mb-2 uppercase tracking-wide">Features</div>
+                                <ul className="text-sm text-white/70 list-disc list-inside h-20 overflow-hidden">
+                                    {plan.features.slice(0, 3).map((f, i) => (
+                                        <li key={i} className="truncate">{f}</li>
+                                    ))}
+                                    {plan.features.length > 3 && <li className="text-white/30 italic">+{plan.features.length - 3} more</li>}
+                                </ul>
+                            </div>
+
+                            <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-white/10">
+                                <button
+                                    onClick={() => handleEdit(plan)}
+                                    className="p-2 hover:bg-white/5 rounded-lg text-white/70 hover:text-blue-400 transition"
+                                >
+                                    <Edit size={18} />
+                                </button>
+                                <button
+                                    onClick={() => plan._id && handleDelete(plan._id)}
+                                    className="p-2 hover:bg-white/5 rounded-lg text-white/70 hover:text-red-400 transition"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
 
             {isEditing && currentPlan && (
