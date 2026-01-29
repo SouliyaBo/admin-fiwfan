@@ -20,6 +20,7 @@ interface Plan {
     theme: string;
     isActive: boolean;
     rankingPriority: number;
+    type: 'CREATOR' | 'TOURIST';
 }
 
 export default function PlansPage() {
@@ -59,7 +60,8 @@ export default function PlansPage() {
             prices: [{ duration: "", price: 0, days: 0 }],
             theme: "blue",
             isActive: true,
-            rankingPriority: 0
+            rankingPriority: 0,
+            type: 'CREATOR'
         });
         setIsEditing(true);
     };
@@ -137,7 +139,7 @@ export default function PlansPage() {
                     Creator Plans (แพ็กเกจน้องๆ)
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {plans.filter(p => !p.id.startsWith("TOURIST_")).map((plan) => (
+                    {plans.filter(p => p.type === 'CREATOR' || (!p.type && !p.id.startsWith("TOURIST_"))).map((plan) => (
                         <div key={plan._id || plan.id} className="bg-[#1e1b4b] border border-pink-500/20 rounded-2xl p-6 relative group hover:border-pink-500/50 transition shadow-lg shadow-pink-500/5">
                             <div className={`absolute top-4 right-4 px-2 py-1 rounded text-xs font-bold ${plan.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                                 {plan.isActive ? 'Active' : 'Inactive'}
@@ -192,7 +194,7 @@ export default function PlansPage() {
                     Tourist Plans (แพ็กเกจนักท่องเที่ยว)
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {plans.filter(p => p.id.startsWith("TOURIST_")).map((plan) => (
+                    {plans.filter(p => p.type === 'TOURIST' || (!p.type && p.id.startsWith("TOURIST_"))).map((plan) => (
                         <div key={plan._id || plan.id} className="bg-[#0f172a] border border-blue-500/20 rounded-2xl p-6 relative group hover:border-blue-500/50 transition shadow-lg shadow-blue-500/5">
                             <div className={`absolute top-4 right-4 px-2 py-1 rounded text-xs font-bold ${plan.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                                 {plan.isActive ? 'Active' : 'Inactive'}
@@ -291,8 +293,10 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan, onSave: (p: Plan) 
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-[#1e1b4b] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-                <div className="p-6 border-b border-white/10 flex justify-between items-center sticky top-0 bg-[#1e1b4b] z-10">
+            <div className="bg-[#1e1b4b] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+
+                {/* Header - Fixed */}
+                <div className="flex-none px-6 py-4 border-b border-white/10 flex justify-between items-center bg-[#1e1b4b]">
                     <h2 className="text-xl font-bold text-white">
                         {plan._id ? "แก้ไขแพ็กเกจ (Edit Plan)" : "สร้างแพ็กเกจใหม่ (Create Plan)"}
                     </h2>
@@ -301,7 +305,8 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan, onSave: (p: Plan) 
                     </button>
                 </div>
 
-                <div className="p-6 space-y-6">
+                {/* Content - Scrollable */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-white/70 mb-1">Plan ID (Unique)</label>
@@ -313,15 +318,26 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan, onSave: (p: Plan) 
                                 placeholder="e.g. SUPER_STAR"
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-white/70 mb-1">Display Name</label>
-                            <input
-                                type="text"
-                                value={formData.name}
-                                onChange={(e) => handleChange("name", e.target.value)}
-                                className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white"
-                            />
-                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-white/70 mb-1">Display Name</label>
+                        <input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => handleChange("name", e.target.value)}
+                            className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-white/70 mb-1">Plan Type</label>
+                        <select
+                            value={formData.type || 'CREATOR'}
+                            onChange={(e) => handleChange("type", e.target.value)}
+                            className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white"
+                        >
+                            <option value="CREATOR">Creator Plan (น้องๆ)</option>
+                            <option value="TOURIST">Tourist Plan (นักท่องเที่ยว)</option>
+                        </select>
                     </div>
 
                     <div>
@@ -411,10 +427,10 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan, onSave: (p: Plan) 
                             ))}
                         </div>
                     </div>
-
                 </div>
 
-                <div className="p-6 border-t border-white/10 flex justify-end gap-3 bg-[#1e1b4b] sticky bottom-0 z-10 rounded-b-2xl">
+                {/* Footer - Fixed */}
+                <div className="flex-none px-6 py-4 border-t border-white/10 flex justify-end gap-3 bg-[#1e1b4b]">
                     <button onClick={onCancel} className="px-4 py-2 rounded-xl text-white/70 hover:bg-white/5 transition">
                         Cancel
                     </button>
