@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import { API_BASE_URL } from "../../lib/constants";
 import { Save, Loader2, Send, SettingsIcon } from "lucide-react";
 
+import { getImageUrl } from "../../lib/images";
+import { uploadS3File } from "../../lib/upload";
+import { QrCode } from "lucide-react";
+
 export default function SettingsPage() {
     const [telegramUrl, setTelegramUrl] = useState("");
     const [isLoading, setIsLoading] = useState(true);
@@ -109,6 +113,201 @@ export default function SettingsPage() {
                     <SettingsIcon size={20} className="text-green-400" /> ตั้งค่าโหมดฟรี (Free Mode)
                 </h2>
                 <FreeModeSettings />
+            </div>
+
+            {/* Payment Settings */}
+            <div className="bg-[#1e1b4b] border border-white/10 rounded-2xl p-8 max-w-2xl mt-8">
+                <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                    <QrCode size={20} className="text-yellow-400" /> ตั้งค่า QR การชำระเงิน (Payment QR Codes)
+                </h2>
+                <PaymentSettings />
+            </div>
+        </div>
+    );
+}
+
+function PaymentSettings() {
+    const [qrTh, setQrTh] = useState("");
+    const [qrLa, setQrLa] = useState("");
+    const [qrWeChat, setQrWeChat] = useState("");
+
+    const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState<string | null>(null);
+
+    useEffect(() => {
+        fetchQRs();
+    }, []);
+
+    const fetchQRs = async () => {
+        try {
+            // Fetch all settings
+            const res = await fetch(`${API_BASE_URL}/settings`);
+            const data = await res.json();
+
+            // Map settings to state
+            const th = data.find((s: any) => s.key === 'payment_qr_th');
+            const la = data.find((s: any) => s.key === 'payment_qr_la');
+            const wc = data.find((s: any) => s.key === 'payment_qr_wechat');
+
+            if (th) setQrTh(th.value);
+            if (la) setQrLa(la.value);
+            if (wc) setQrWeChat(wc.value);
+        } catch (error) {
+            console.error("Failed to fetch payment settings", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpload = async (file: File, type: 'th' | 'la' | 'wc') => {
+        setUploading(type);
+        try {
+            const key = await uploadS3File(file, "system"); // Upload to 'system' folder
+            const value = getImageUrl(key); // Construct full URL
+
+            // Save settings key
+            const settingKey = type === 'th' ? 'payment_qr_th' : type === 'la' ? 'payment_qr_la' : 'payment_qr_wechat';
+            const description = type === 'th' ? 'QR Code for Thai PromptPay' : type === 'la' ? 'QR Code for Lao OnePay' : 'QR Code for WeChat Pay';
+
+            const token = localStorage.getItem("token");
+            await fetch(`${API_BASE_URL}/settings`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    key: settingKey,
+                    value: value,
+                    description: description
+                })
+            });
+
+            // Update local state
+            if (type === 'th') setQrTh(value);
+            if (type === 'la') setQrLa(value);
+            if (type === 'wc') setQrWeChat(value);
+
+            alert("อัพโหลดรูปภาพสำเร็จ (Saved)");
+
+        } catch (error) {
+            console.error(error);
+            alert("Upload Failed");
+        } finally {
+            setUploading(null);
+        }
+    };
+
+    if (loading) return <div className="text-white/50">Loading...</div>;
+
+    return (
+        <div className="space-y-6">
+            {/* THAI QR */}
+            <div className="border border-white/5 bg-white/5 rounded-xl p-4">
+                <label className="block text-sm font-medium text-white/90 mb-3 flex items-center gap-2">
+                    <span className="textlg">🇹🇭</span> Thai QR (PromptPay)
+                </label>
+                <div className="flex gap-4">
+                    <div className="w-24 h-24 bg-black/40 rounded-lg flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                        {qrTh ? (
+                            <img src={qrTh} alt="QR TH" className="w-full h-full object-contain" />
+                        ) : (
+                            <span className="text-xs text-white/20">No Img</span>
+                        )}
+                    </div>
+                    <div className="flex-1">
+                        <label className="block w-full">
+                            <span className="sr-only">Choose profile photo</span>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], 'th')}
+                                disabled={uploading === 'th'}
+                                className="block w-full text-sm text-slate-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100
+                                cursor-pointer"
+                            />
+                        </label>
+                        <p className="text-xs text-white/40 mt-2">อัพโหลดรูป QR Code สำหรับรับเงินไทย (PromptPay)</p>
+                        {uploading === 'th' && <span className="text-xs text-blue-400 mt-1">Uploading...</span>}
+                    </div>
+                </div>
+            </div>
+
+            {/* LAO QR */}
+            <div className="border border-white/5 bg-white/5 rounded-xl p-4">
+                <label className="block text-sm font-medium text-white/90 mb-3 flex items-center gap-2">
+                    <span className="text-lg">🇱🇦</span> Lao QR (OnePay)
+                </label>
+                <div className="flex gap-4">
+                    <div className="w-24 h-24 bg-black/40 rounded-lg flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                        {qrLa ? (
+                            <img src={qrLa} alt="QR LA" className="w-full h-full object-contain" />
+                        ) : (
+                            <span className="text-xs text-white/20">No Img</span>
+                        )}
+                    </div>
+                    <div className="flex-1">
+                        <label className="block w-full">
+                            <span className="sr-only">Choose profile photo</span>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], 'la')}
+                                disabled={uploading === 'la'}
+                                className="block w-full text-sm text-slate-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100
+                                cursor-pointer"
+                            />
+                        </label>
+                        <p className="text-xs text-white/40 mt-2">อัพโหลดรูป QR Code สำหรับรับเงินลาว (OnePay)</p>
+                        {uploading === 'la' && <span className="text-xs text-blue-400 mt-1">Uploading...</span>}
+                    </div>
+                </div>
+            </div>
+
+            {/* WECHAT QR */}
+            <div className="border border-white/5 bg-white/5 rounded-xl p-4">
+                <label className="block text-sm font-medium text-white/90 mb-3 flex items-center gap-2">
+                    <span className="text-lg">🇨🇳</span> WeChat Pay (จีน)
+                </label>
+                <div className="flex gap-4">
+                    <div className="w-24 h-24 bg-black/40 rounded-lg flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                        {qrWeChat ? (
+                            <img src={qrWeChat} alt="QR WC" className="w-full h-full object-contain" />
+                        ) : (
+                            <span className="text-xs text-white/20">No Img</span>
+                        )}
+                    </div>
+                    <div className="flex-1">
+                        <label className="block w-full">
+                            <span className="sr-only">Choose profile photo</span>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], 'wc')}
+                                disabled={uploading === 'wc'}
+                                className="block w-full text-sm text-slate-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100
+                                cursor-pointer"
+                            />
+                        </label>
+                        <p className="text-xs text-white/40 mt-2">อัพโหลดรูป QR Code สำหรับรับเงิน WeChat (จีน)</p>
+                        {uploading === 'wc' && <span className="text-xs text-blue-400 mt-1">Uploading...</span>}
+                    </div>
+                </div>
             </div>
         </div>
     );

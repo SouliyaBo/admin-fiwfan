@@ -39,7 +39,7 @@ export default function UsersPage() {
             const token = localStorage.getItem("token");
             const queryParams = new URLSearchParams({
                 page: page.toString(),
-                limit: "20",
+                limit: "1000",
                 search: search
             });
 
