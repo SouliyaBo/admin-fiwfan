@@ -131,6 +131,11 @@ function PaymentSettings() {
     const [qrLa, setQrLa] = useState("");
     const [qrWeChat, setQrWeChat] = useState("");
 
+    // Exchange Rates
+    const [rateLak, setRateLak] = useState("");
+    const [rateCny, setRateCny] = useState("");
+    const [isSavingRate, setIsSavingRate] = useState(false);
+
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState<string | null>(null);
 
@@ -149,13 +154,49 @@ function PaymentSettings() {
             const la = data.find((s: any) => s.key === 'payment_qr_la');
             const wc = data.find((s: any) => s.key === 'payment_qr_wechat');
 
+            const rLak = data.find((s: any) => s.key === 'exchange_rate_lak');
+            const rCny = data.find((s: any) => s.key === 'exchange_rate_cny');
+
             if (th) setQrTh(th.value);
             if (la) setQrLa(la.value);
             if (wc) setQrWeChat(wc.value);
+
+            if (rLak) setRateLak(rLak.value);
+            if (rCny) setRateCny(rCny.value);
         } catch (error) {
             console.error("Failed to fetch payment settings", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSaveRate = async (key: string, value: string, description: string) => {
+        setIsSavingRate(true);
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${API_BASE_URL}/settings`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    key,
+                    value,
+                    description
+                })
+            });
+
+            if (res.ok) {
+                alert("บันทึกเรทเงินสำเร็จ (Rate Saved)");
+            } else {
+                alert("Failed to save rate");
+            }
+        } catch (error) {
+            console.error("Error saving rate:", error);
+            alert("Connection error");
+        } finally {
+            setIsSavingRate(false);
         }
     };
 
@@ -201,23 +242,26 @@ function PaymentSettings() {
     if (loading) return <div className="text-white/50">Loading...</div>;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             {/* THAI QR */}
-            <div className="border border-white/5 bg-white/5 rounded-xl p-4">
-                <label className="block text-sm font-medium text-white/90 mb-3 flex items-center gap-2">
-                    <span className="textlg">🇹🇭</span> Thai QR (PromptPay)
+            <div className="border border-white/5 bg-white/5 rounded-xl p-6">
+                <label className="block text-lg font-medium text-white mb-4 flex items-center gap-2">
+                    <span className="text-2xl">🇹🇭</span> Thai QR (PromptPay)
                 </label>
-                <div className="flex gap-4">
-                    <div className="w-24 h-24 bg-black/40 rounded-lg flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                <div className="flex flex-col md:flex-row gap-6">
+                    <div className="w-40 h-40 bg-black/40 rounded-xl flex items-center justify-center overflow-hidden border border-white/10 shrink-0 relative group">
                         {qrTh ? (
                             <img src={qrTh} alt="QR TH" className="w-full h-full object-contain" />
                         ) : (
-                            <span className="text-xs text-white/20">No Img</span>
+                            <div className="flex flex-col items-center justify-center text-white/30">
+                                <QrCode size={32} className="mb-2" />
+                                <span className="text-xs">No QR Image</span>
+                            </div>
                         )}
                     </div>
-                    <div className="flex-1">
-                        <label className="block w-full">
-                            <span className="sr-only">Choose profile photo</span>
+                    <div className="flex-1 space-y-4">
+                        <div>
+                            <label className="block text-sm text-white/70 mb-2">Upload QR Image</label>
                             <input
                                 type="file"
                                 accept="image/*"
@@ -227,33 +271,70 @@ function PaymentSettings() {
                                 file:mr-4 file:py-2 file:px-4
                                 file:rounded-full file:border-0
                                 file:text-sm file:font-semibold
-                                file:bg-blue-50 file:text-blue-700
-                                hover:file:bg-blue-100
-                                cursor-pointer"
+                                file:bg-blue-600 file:text-white
+                                hover:file:bg-blue-700
+                                cursor-pointer
+                                bg-white/5 rounded-full"
                             />
-                        </label>
-                        <p className="text-xs text-white/40 mt-2">อัพโหลดรูป QR Code สำหรับรับเงินไทย (PromptPay)</p>
-                        {uploading === 'th' && <span className="text-xs text-blue-400 mt-1">Uploading...</span>}
+                            {uploading === 'th' && <p className="text-xs text-blue-400 mt-2 animate-pulse">Uploading...</p>}
+                        </div>
+                        <p className="text-sm text-white/40">
+                            QR Code สำหรับการรับเงินผ่าน PromptPay (ไทย)
+                            <br />
+                            ระบบจะแสดงราคาเป็นเงินบาท (THB) ตามปกติ
+                        </p>
                     </div>
                 </div>
             </div>
 
             {/* LAO QR */}
-            <div className="border border-white/5 bg-white/5 rounded-xl p-4">
-                <label className="block text-sm font-medium text-white/90 mb-3 flex items-center gap-2">
-                    <span className="text-lg">🇱🇦</span> Lao QR (OnePay)
-                </label>
-                <div className="flex gap-4">
-                    <div className="w-24 h-24 bg-black/40 rounded-lg flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+            <div className="border border-white/5 bg-white/5 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <label className="block text-lg font-medium text-white flex items-center gap-2">
+                        <span className="text-2xl">🇱🇦</span> Lao QR (OnePay)
+                    </label>
+                </div>
+
+                {/* Exchange Rate Input */}
+                <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-4 mb-6">
+                    <label className="block text-sm font-medium text-blue-200 mb-2">อัตราแลกเปลี่ยน (Exchange Rate)</label>
+                    <div className="flex items-center gap-3">
+                        <span className="text-white font-medium">1 THB =</span>
+                        <input
+                            type="number"
+                            value={rateLak}
+                            onChange={(e) => setRateLak(e.target.value)}
+                            placeholder="e.g. 700"
+                            className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white w-32 focus:outline-none focus:border-blue-500"
+                        />
+                        <span className="text-white font-medium">LAK (Kip)</span>
+                        <button
+                            onClick={() => handleSaveRate('exchange_rate_lak', rateLak, 'Exchange Rate: 1 THB to LAK')}
+                            disabled={isSavingRate}
+                            className="ml-auto bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                        >
+                            {isSavingRate ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Save Rate
+                        </button>
+                    </div>
+                    <p className="text-xs text-blue-300/60 mt-2">
+                        เช่น ใส่ 700 หมายถึง 1 บาท = 700 กีบ (ระบบจะคำนวณราคาอัตโนมัติ)
+                    </p>
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-6">
+                    <div className="w-40 h-40 bg-black/40 rounded-xl flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
                         {qrLa ? (
                             <img src={qrLa} alt="QR LA" className="w-full h-full object-contain" />
                         ) : (
-                            <span className="text-xs text-white/20">No Img</span>
+                            <div className="flex flex-col items-center justify-center text-white/30">
+                                <QrCode size={32} className="mb-2" />
+                                <span className="text-xs">No QR Image</span>
+                            </div>
                         )}
                     </div>
-                    <div className="flex-1">
-                        <label className="block w-full">
-                            <span className="sr-only">Choose profile photo</span>
+                    <div className="flex-1 space-y-4">
+                        <div>
+                            <label className="block text-sm text-white/70 mb-2">Upload QR Image</label>
                             <input
                                 type="file"
                                 accept="image/*"
@@ -263,33 +344,68 @@ function PaymentSettings() {
                                 file:mr-4 file:py-2 file:px-4
                                 file:rounded-full file:border-0
                                 file:text-sm file:font-semibold
-                                file:bg-blue-50 file:text-blue-700
-                                hover:file:bg-blue-100
-                                cursor-pointer"
+                                file:bg-blue-600 file:text-white
+                                hover:file:bg-blue-700
+                                cursor-pointer
+                                bg-white/5 rounded-full"
                             />
-                        </label>
-                        <p className="text-xs text-white/40 mt-2">อัพโหลดรูป QR Code สำหรับรับเงินลาว (OnePay)</p>
-                        {uploading === 'la' && <span className="text-xs text-blue-400 mt-1">Uploading...</span>}
+                            {uploading === 'la' && <p className="text-xs text-blue-400 mt-2 animate-pulse">Uploading...</p>}
+                        </div>
+                        <p className="text-sm text-white/40">
+                            QR Code สำหรับการรับเงินผ่าน OnePay (ลาว)
+                        </p>
                     </div>
                 </div>
             </div>
 
             {/* WECHAT QR */}
-            <div className="border border-white/5 bg-white/5 rounded-xl p-4">
-                <label className="block text-sm font-medium text-white/90 mb-3 flex items-center gap-2">
-                    <span className="text-lg">🇨🇳</span> WeChat Pay (จีน)
-                </label>
-                <div className="flex gap-4">
-                    <div className="w-24 h-24 bg-black/40 rounded-lg flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+            <div className="border border-white/5 bg-white/5 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <label className="block text-lg font-medium text-white flex items-center gap-2">
+                        <span className="text-2xl">🇨🇳</span> WeChat Pay (จีน)
+                    </label>
+                </div>
+
+                {/* Exchange Rate Input */}
+                <div className="bg-green-900/20 border border-green-500/30 rounded-xl p-4 mb-6">
+                    <label className="block text-sm font-medium text-green-200 mb-2">อัตราแลกเปลี่ยน (Exchange Rate)</label>
+                    <div className="flex items-center gap-3">
+                        <span className="text-white font-medium">1 CNY =</span>
+                        <input
+                            type="number"
+                            value={rateCny}
+                            onChange={(e) => setRateCny(e.target.value)}
+                            placeholder="e.g. 5"
+                            className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white w-32 focus:outline-none focus:border-green-500"
+                        />
+                        <span className="text-white font-medium">THB (Baht)</span>
+                        <button
+                            onClick={() => handleSaveRate('exchange_rate_cny', rateCny, 'Exchange Rate: 1 CNY to THB')}
+                            disabled={isSavingRate}
+                            className="ml-auto bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                        >
+                            {isSavingRate ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Save Rate
+                        </button>
+                    </div>
+                    <p className="text-xs text-green-300/60 mt-2">
+                        เช่น ใส่ 5 หมายถึง 1 หยวน = 5 บาท (ระบบจะคำนวณราคาอัตโนมัติโดยเอายอดบาท / 5)
+                    </p>
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-6">
+                    <div className="w-40 h-40 bg-black/40 rounded-xl flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
                         {qrWeChat ? (
                             <img src={qrWeChat} alt="QR WC" className="w-full h-full object-contain" />
                         ) : (
-                            <span className="text-xs text-white/20">No Img</span>
+                            <div className="flex flex-col items-center justify-center text-white/30">
+                                <QrCode size={32} className="mb-2" />
+                                <span className="text-xs">No QR Image</span>
+                            </div>
                         )}
                     </div>
-                    <div className="flex-1">
-                        <label className="block w-full">
-                            <span className="sr-only">Choose profile photo</span>
+                    <div className="flex-1 space-y-4">
+                        <div>
+                            <label className="block text-sm text-white/70 mb-2">Upload QR Image</label>
                             <input
                                 type="file"
                                 accept="image/*"
@@ -299,13 +415,16 @@ function PaymentSettings() {
                                 file:mr-4 file:py-2 file:px-4
                                 file:rounded-full file:border-0
                                 file:text-sm file:font-semibold
-                                file:bg-blue-50 file:text-blue-700
-                                hover:file:bg-blue-100
-                                cursor-pointer"
+                                file:bg-blue-600 file:text-white
+                                hover:file:bg-blue-700
+                                cursor-pointer
+                                bg-white/5 rounded-full"
                             />
-                        </label>
-                        <p className="text-xs text-white/40 mt-2">อัพโหลดรูป QR Code สำหรับรับเงิน WeChat (จีน)</p>
-                        {uploading === 'wc' && <span className="text-xs text-blue-400 mt-1">Uploading...</span>}
+                            {uploading === 'wc' && <p className="text-xs text-blue-400 mt-2 animate-pulse">Uploading...</p>}
+                        </div>
+                        <p className="text-sm text-white/40">
+                            QR Code สำหรับการรับเงินผ่าน WeChat Pay (จีน)
+                        </p>
                     </div>
                 </div>
             </div>
