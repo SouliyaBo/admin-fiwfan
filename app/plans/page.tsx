@@ -315,7 +315,7 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan, onSave: (p: Plan) 
                                 value={formData.id}
                                 onChange={(e) => handleChange("id", e.target.value)}
                                 className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white"
-                                placeholder="e.g. SUPER_STAR"
+                                placeholder="e.g. RISING_STAR"
                             />
                         </div>
                     </div>
