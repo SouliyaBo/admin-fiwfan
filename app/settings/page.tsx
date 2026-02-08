@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from "../../lib/constants";
 import { Save, Loader2, Send, SettingsIcon } from "lucide-react";
+import { toast } from "react-toastify";
 
 import { getImageUrl } from "../../lib/images";
 import { uploadS3File } from "../../lib/upload";
@@ -49,13 +50,13 @@ export default function SettingsPage() {
             });
 
             if (res.ok) {
-                alert("บันทึกข้อมูลเรียบร้อยแล้ว (Saved successfully)");
+                toast.success("บันทึกข้อมูลเรียบร้อยแล้ว (Saved successfully)");
             } else {
-                alert("เกิดข้อผิดพลาดในการบันทึก (Failed to save)");
+                toast.error("เกิดข้อผิดพลาดในการบันทึก (Failed to save)");
             }
         } catch (error) {
             console.error("Error saving settings:", error);
-            alert("Connection error");
+            toast.error("Connection error");
         } finally {
             setIsSaving(false);
         }
@@ -188,13 +189,13 @@ function PaymentSettings() {
             });
 
             if (res.ok) {
-                alert("บันทึกเรทเงินสำเร็จ (Rate Saved)");
+                toast.success("บันทึกเรทเงินสำเร็จ (Rate Saved)");
             } else {
-                alert("Failed to save rate");
+                toast.error("Failed to save rate");
             }
         } catch (error) {
             console.error("Error saving rate:", error);
-            alert("Connection error");
+            toast.error("Connection error");
         } finally {
             setIsSavingRate(false);
         }
@@ -229,11 +230,11 @@ function PaymentSettings() {
             if (type === 'la') setQrLa(value);
             if (type === 'wc') setQrWeChat(value);
 
-            alert("อัพโหลดรูปภาพสำเร็จ (Saved)");
+            toast.success("อัพโหลดรูปภาพสำเร็จ (Saved)");
 
         } catch (error) {
             console.error(error);
-            alert("Upload Failed");
+            toast.error("Upload Failed");
         } finally {
             setUploading(null);
         }
@@ -475,12 +476,13 @@ function FreeModeSettings() {
 
             if (res.ok) {
                 setIsFreeMode(newValue);
+                toast.success(newValue ? "เปิดใช้งานโหมดฟรีแล้ว" : "ปิดโหมดฟรีแล้ว");
             } else {
-                alert("Failed to save");
+                toast.error("Failed to save");
             }
         } catch (error) {
-            console.error("Error saving settings:", error);
-            alert("Connection error");
+            console.error("Error saving rate:", error);
+            toast.error("Connection error");
         } finally {
             setIsSaving(false);
         }

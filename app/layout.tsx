@@ -3,6 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "./components/AppShell";
 
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -35,6 +38,7 @@ export default function RootLayout({
         <AppShell>
           {children}
         </AppShell>
+        <ToastContainer position="top-right" theme="dark" />
       </body>
     </html>
   );

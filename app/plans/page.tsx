@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from "../../lib/constants";
 import { Wallet, Plus, Edit, Trash2, X, Save, Loader2, GripVertical } from "lucide-react";
+import { toast } from "react-toastify";
 
 interface PlanPrice {
     duration: string;
@@ -76,8 +77,9 @@ export default function PlansPage() {
             });
             if (res.ok) {
                 fetchPlans();
+                toast.success("ลบแพ็กเกจเรียบร้อยแล้ว");
             } else {
-                alert("Failed to delete plan");
+                toast.error("ลบแพ็กเกจไม่สำเร็จ");
             }
         } catch (error) {
             console.error("Error deleting plan:", error);
@@ -102,9 +104,10 @@ export default function PlansPage() {
             if (res.ok) {
                 setIsEditing(false);
                 fetchPlans();
+                toast.success("บันทึกแพ็กเกจเรียบร้อยแล้ว");
             } else {
                 const error = await res.json();
-                alert(`Error: ${error.message}`);
+                toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
             }
         } catch (error) {
             console.error("Error saving plan:", error);

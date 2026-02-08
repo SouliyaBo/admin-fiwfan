@@ -6,6 +6,7 @@ import Image from "next/image";
 import { getImageUrl } from "../../lib/images";
 import { API_BASE_URL } from "../../lib/constants";
 import { Check, ShieldCheck, ExternalLink, LogOut, Loader2, X, AlertTriangle, CreditCard, Eye } from "lucide-react";
+import { toast } from "react-toastify";
 
 interface Subscription {
     _id: string;
@@ -79,13 +80,13 @@ export default function PaymentsPage() {
 
             if (res.ok) {
                 setPendingPayments(prev => prev.filter(p => p._id !== subscriptionId));
-                alert("อนุมัติเรียบร้อย! (Approved Successfully)");
+                toast.success("อนุมัติเรียบร้อย! (Approved Successfully)");
             } else {
-                alert("เกิดข้อผิดพลาด (Error occurred)");
+                toast.error("เกิดข้อผิดพลาด (Error occurred)");
             }
         } catch (error) {
             console.error(error);
-            alert("เกิดข้อผิดพลาดในการเชื่อมต่อ (Connection Error)");
+            toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ (Connection Error)");
         }
     };
 
@@ -100,13 +101,13 @@ export default function PaymentsPage() {
 
             if (res.ok) {
                 setPendingPayments(prev => prev.filter(p => p._id !== subscriptionId));
-                alert("ปฏิเสธเรียบร้อย (Rejected Successfully)");
+                toast.success("ปฏิเสธเรียบร้อย (Rejected Successfully)");
             } else {
-                alert("เกิดข้อผิดพลาด (Error occurred)");
+                toast.error("เกิดข้อผิดพลาด (Error occurred)");
             }
         } catch (error) {
             console.error(error);
-            alert("เกิดข้อผิดพลาดในการเชื่อมต่อ (Connection Error)");
+            toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ (Connection Error)");
         }
     };
 

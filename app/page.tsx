@@ -6,6 +6,7 @@ import Image from "next/image";
 import { getImageUrl } from "../lib/images";
 import { API_BASE_URL } from "../lib/constants";
 import { Check, ShieldCheck, ExternalLink, LogOut, Loader2, X, AlertTriangle } from "lucide-react";
+import { toast } from "react-toastify";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -85,14 +86,14 @@ export default function AdminDashboard() {
 
       if (res.ok) {
         // Success
-        setPendingAgencies(prev => prev.filter(a => a._id !== approveDialog.agencyId));
         setApproveDialog({ isOpen: false, agencyId: null, agencyName: "" });
+        toast.success("อนุมัติสังกัดเรียบร้อยแล้ว");
       } else {
-        alert("Operation failed");
+        toast.error("การอนุมัติล้มเหลว");
       }
     } catch (error) {
       console.error(error);
-      alert("Connection error");
+      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     }
   };
 
@@ -117,15 +118,14 @@ export default function AdminDashboard() {
       });
 
       if (res.ok) {
-        setPendingAgencies(prev => prev.filter(a => a._id !== rejectDialog.agencyId));
-        setRejectDialog({ isOpen: false, agencyId: null });
         setRejectReason("");
+        toast.success("ปฏิเสธคำขอเรียบร้อยแล้ว");
       } else {
-        alert("Failed to reject agency");
+        toast.error("ไม่สามารถปฏิเสธคำขอได้");
       }
     } catch (error) {
       console.error(error);
-      alert("Error rejecting agency");
+      toast.error("เกิดข้อผิดพลาดในการปฏิเสธคำขอ");
     } finally {
       setIsRejecting(false);
     }
