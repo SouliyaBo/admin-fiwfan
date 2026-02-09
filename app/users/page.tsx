@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE_URL } from "../../lib/constants";
+import { API_BASE_URL, PORTAL_URL } from "../../lib/constants";
 import { getImageUrl } from "../../lib/images";
-import { Search, ShieldAlert, CheckCircle, Ban, Loader2, User as UserIcon, Shield, X, Eye, Image as ImageIcon } from "lucide-react";
+import { Search, ShieldAlert, CheckCircle, Ban, Loader2, User as UserIcon, Shield, X, Eye, Image as ImageIcon, ExternalLink } from "lucide-react";
 
 export default function UsersPage() {
     const router = useRouter();
@@ -320,6 +320,18 @@ export default function UsersPage() {
                                                 >
                                                     <Eye size={16} />
                                                 </button>
+
+                                                {user.role === 'CREATOR' && user.creatorProfile && (
+                                                    <a
+                                                        href={`${PORTAL_URL}/sideline/${user.creatorProfile._id}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="p-1.5 rounded text-xs font-bold transition flex items-center gap-1 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
+                                                        title="ดูหน้าโปรไฟล์ (Portal)"
+                                                    >
+                                                        <ExternalLink size={16} />
+                                                    </a>
+                                                )}
 
                                                 <button
                                                     onClick={() => toggleUserStatus(user)}

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE_URL } from "../../lib/constants";
+import { API_BASE_URL, PORTAL_URL } from "../../lib/constants";
+import { getImageUrl } from "../../lib/images";
 import { Check, ShieldCheck, X, Loader2 } from "lucide-react";
 
 export default function ReportsPage() {
@@ -121,8 +122,8 @@ export default function ReportsPage() {
                                         </td>
                                         <td className="p-4">
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${report.status === 'PENDING' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                    report.status === 'RESOLVED' ? 'bg-green-500/20 text-green-400' :
-                                                        'bg-red-500/20 text-red-400'
+                                                report.status === 'RESOLVED' ? 'bg-green-500/20 text-green-400' :
+                                                    'bg-red-500/20 text-red-400'
                                                 }`}>
                                                 {report.status === 'PENDING' ? 'รอดำเนินการ' : report.status === 'RESOLVED' ? 'แก้ไขแล้ว' : 'ปฏิเสธ'}
                                             </span>
@@ -141,10 +142,54 @@ export default function ReportsPage() {
                                             {report.targetType}
                                         </td>
                                         <td className="p-4">
-                                            <div className="text-sm text-white/80 font-medium">
-                                                {report.target?.displayName || report.target?.username || report.targetId}
+                                            <div className="flex items-center gap-3">
+                                                {/* Avatar */}
+                                                <div className="w-10 h-10 rounded-full bg-white/10 overflow-hidden flex-shrink-0">
+                                                    {(
+                                                        // Check for User/Creator Avatar
+                                                        (report.targetType !== 'REVIEW' && (report.target?.avatarUrl || (report.target?.images && report.target?.images[0]))) ||
+                                                        // Check for Review Author Avatar
+                                                        (report.targetType === 'REVIEW' && report.target?.user?.avatarUrl)
+                                                    ) ? (
+                                                        <img
+                                                            src={getImageUrl(
+                                                                report.targetType === 'REVIEW'
+                                                                    ? report.target.user.avatarUrl
+                                                                    : (report.target?.avatarUrl || report.target?.images?.[0])
+                                                            )}
+                                                            alt="Avatar"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-white/30 text-xs">No Pic</div>
+                                                    )}
+                                                </div>
+
+                                                <div>
+                                                    <div className="text-sm text-white/90 font-bold">
+                                                        {report.targetType === 'REVIEW' && report.target?.user ?
+                                                            (report.target.user.displayName || report.target.user.username) :
+                                                            (report.target?.displayName || report.target?.username || "Unknown")
+                                                        }
+                                                    </div>
+                                                    <div className="text-xs text-white/50 mb-1">
+                                                        {report.targetType}
+                                                        {report.targetType === 'REVIEW' && <span className="text-white/30 ml-1">(Review)</span>}
+                                                    </div>
+
+                                                    {/* Link to Profile */}
+                                                    {report.targetType === 'REVIEW' && (
+                                                        <a
+                                                            href={`${PORTAL_URL}/sideline/${report.target.user._id}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-500/30 transition flex items-center gap-1 w-fit"
+                                                        >
+                                                            ดูโปรไฟล์ <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                                        </a>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="text-[10px] text-white/30 font-mono truncate max-w-[120px]">{report.targetId}</div>
                                         </td>
                                         <td className="p-4">
                                             <div className="font-bold">

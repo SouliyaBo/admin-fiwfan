@@ -29,8 +29,10 @@ export default function PaymentsPage() {
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
     const [pendingPayments, setPendingPayments] = useState<Subscription[]>([]);
+    const [historyPayments, setHistoryPayments] = useState<Subscription[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedSlip, setSelectedSlip] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'PENDING' | 'HISTORY'>('PENDING');
 
     useEffect(() => {
         // Auth Check
@@ -50,10 +52,16 @@ export default function PaymentsPage() {
         }
 
         setUser(parsedUser);
-        fetchPendingPayments(token);
-    }, [router]);
+
+        if (activeTab === 'PENDING') {
+            fetchPendingPayments(token);
+        } else {
+            fetchPaymentHistory(token);
+        }
+    }, [router, activeTab]);
 
     const fetchPendingPayments = async (token: string) => {
+        setLoading(true);
         try {
             const res = await fetch(`${API_BASE_URL}/payments/admin/pending`, {
                 headers: { "Authorization": `Bearer ${token}` }
@@ -69,18 +77,53 @@ export default function PaymentsPage() {
         }
     };
 
-    const handleApprove = async (subscriptionId: string) => {
-        if (!confirm("ยืนยันการอนุมัติการชำระเงินนี้? (Confirm Approve?)")) return;
+    const fetchPaymentHistory = async (token: string) => {
+        setLoading(true);
+        try {
+            const res = await fetch(`${API_BASE_URL}/payments/admin/history`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setHistoryPayments(data);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const [paymentConfirmDialog, setPaymentConfirmDialog] = useState<{ isOpen: boolean; action: 'APPROVE' | 'REJECT' | null; subscriptionId: string | null }>({
+        isOpen: false,
+        action: null,
+        subscriptionId: null
+    });
+
+    const handleApprove = (subscriptionId: string) => {
+        setPaymentConfirmDialog({ isOpen: true, action: 'APPROVE', subscriptionId });
+    };
+
+    const handleReject = (subscriptionId: string) => {
+        setPaymentConfirmDialog({ isOpen: true, action: 'REJECT', subscriptionId });
+    };
+
+    const handleConfirmAction = async () => {
+        const { action, subscriptionId } = paymentConfirmDialog;
+        if (!action || !subscriptionId) return;
+
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch(`${API_BASE_URL}/payments/admin/${subscriptionId}/approve`, {
+            const endpoint = action === 'APPROVE' ? 'approve' : 'reject';
+            const res = await fetch(`${API_BASE_URL}/payments/admin/${subscriptionId}/${endpoint}`, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${token}` }
             });
 
             if (res.ok) {
                 setPendingPayments(prev => prev.filter(p => p._id !== subscriptionId));
-                toast.success("อนุมัติเรียบร้อย! (Approved Successfully)");
+                toast.success(action === 'APPROVE' ? "อนุมัติเรียบร้อย! (Approved Successfully)" : "ปฏิเสธเรียบร้อย (Rejected Successfully)");
+                setPaymentConfirmDialog({ isOpen: false, action: null, subscriptionId: null });
             } else {
                 toast.error("เกิดข้อผิดพลาด (Error occurred)");
             }
@@ -88,32 +131,6 @@ export default function PaymentsPage() {
             console.error(error);
             toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ (Connection Error)");
         }
-    };
-
-    const handleReject = async (subscriptionId: string) => {
-        if (!confirm("ยืนยันการปฏิเสธการชำระเงินนี้? (Confirm Reject?)")) return;
-        try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`${API_BASE_URL}/payments/admin/${subscriptionId}/reject`, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-
-            if (res.ok) {
-                setPendingPayments(prev => prev.filter(p => p._id !== subscriptionId));
-                toast.success("ปฏิเสธเรียบร้อย (Rejected Successfully)");
-            } else {
-                toast.error("เกิดข้อผิดพลาด (Error occurred)");
-            }
-        } catch (error) {
-            console.error(error);
-            toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ (Connection Error)");
-        }
-    };
-
-    const handleLogout = () => {
-        localStorage.clear();
-        router.push("/login");
     };
 
     if (loading) {
@@ -130,61 +147,114 @@ export default function PaymentsPage() {
             <main className="container mx-auto px-6 py-8 max-w-6xl">
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h2 className="text-2xl font-bold mb-1">รายการรอตรวจสอบ (Pending Payments)</h2>
+                        <h2 className="text-2xl font-bold mb-1">จัดการการชำระเงิน (Payments)</h2>
                         <p className="text-white/50 text-sm">ตรวจสอบและอนุมัติการชำระเงินของผู้ใช้</p>
                     </div>
-                    <span className="bg-blue-500/20 text-blue-400 px-4 py-1.5 rounded-full text-sm font-bold border border-blue-500/20">
-                        {pendingPayments.length} รายการ
-                    </span>
                 </div>
 
-                {pendingPayments.length === 0 ? (
-                    <div className="text-center py-24 bg-white/5 rounded-3xl border border-dashed border-white/10 text-white/30 flex flex-col items-center">
-                        <CreditCard size={64} className="mb-4 opacity-20" />
-                        <p className="text-lg font-medium">ไม่มีรายการรอตรวจสอบ</p>
-                        <p className="text-sm mt-1">ทุกการชำระเงินได้รับการตรวจสอบแล้ว</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 gap-4">
-                        {pendingPayments.map((payment) => (
-                            <div key={payment._id} className="bg-[#1e1b4b]/30 border border-white/10 p-6 rounded-2xl flex flex-col md:flex-row items-start gap-6 hover:border-white/20 transition group">
-                                <div className="flex-1">
-                                    <h3 className="text-lg font-bold flex items-center gap-2 text-white mb-2">
-                                        {payment.user.displayName || payment.user.username}
-                                        <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">@{payment.user.username}</span>
-                                    </h3>
-                                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/60 mb-4">
-                                        <span>แพ็กเกจ: <span className="text-white font-bold">{payment.planType}</span></span>
-                                        <span>ราคา: <span className="text-green-400 font-bold">{payment.price} บาท</span></span>
-                                        <span>วันที่แจ้ง: <span className="text-white/70">{new Date(payment.createdAt).toLocaleDateString('th-TH')}</span></span>
+                {/* Tabs */}
+                <div className="flex gap-4 mb-6 border-b border-white/10">
+                    <button
+                        onClick={() => setActiveTab('PENDING')}
+                        className={`px-4 py-3 font-bold text-sm transition relative ${activeTab === 'PENDING' ? 'text-yellow-400' : 'text-white/40 hover:text-white'}`}
+                    >
+                        รอตรวจสอบ ({pendingPayments.length})
+                        {activeTab === 'PENDING' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-yellow-400"></div>}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('HISTORY')}
+                        className={`px-4 py-3 font-bold text-sm transition relative ${activeTab === 'HISTORY' ? 'text-blue-400' : 'text-white/40 hover:text-white'}`}
+                    >
+                        ประวัติการตรวจสอบ
+                        {activeTab === 'HISTORY' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-400"></div>}
+                    </button>
+                </div>
+
+                {activeTab === 'PENDING' ? (
+                    pendingPayments.length === 0 ? (
+                        <div className="text-center py-24 bg-white/5 rounded-3xl border border-dashed border-white/10 text-white/30 flex flex-col items-center">
+                            <CreditCard size={64} className="mb-4 opacity-20" />
+                            <p className="text-lg font-medium">ไม่มีรายการรอตรวจสอบ</p>
+                            <p className="text-sm mt-1">ทุกการชำระเงินได้รับการตรวจสอบแล้ว</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-4">
+                            {pendingPayments.map((payment) => (
+                                <div key={payment._id} className="bg-[#1e1b4b]/30 border border-white/10 p-6 rounded-2xl flex flex-col md:flex-row items-start gap-6 hover:border-white/20 transition group">
+                                    <div className="flex-1">
+                                        <h3 className="text-lg font-bold flex items-center gap-2 text-white mb-2">
+                                            {payment.user.displayName || payment.user.username}
+                                            <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">@{payment.user.username}</span>
+                                        </h3>
+                                        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/60 mb-4">
+                                            <span>แพ็กเกจ: <span className="text-white font-bold">{payment.planType}</span></span>
+                                            <span>ราคา: <span className="text-green-400 font-bold">{payment.price} บาท</span></span>
+                                            <span>วันที่แจ้ง: <span className="text-white/70">{new Date(payment.createdAt).toLocaleDateString('th-TH')}</span></span>
+                                        </div>
+
+                                        {payment.slipUrl && (
+                                            <button
+                                                onClick={() => setSelectedSlip(payment.slipUrl!)}
+                                                className="text-sm bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
+                                            >
+                                                <Eye size={16} /> ดูสลิปการโอนเงิน
+                                            </button>
+                                        )}
                                     </div>
 
-                                    {payment.slipUrl && (
+                                    <div className="flex-shrink-0 w-full md:w-auto flex flex-col gap-2">
                                         <button
-                                            onClick={() => setSelectedSlip(payment.slipUrl!)}
-                                            className="text-sm bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
+                                            onClick={() => handleApprove(payment._id)}
+                                            className="w-full md:w-auto px-6 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold shadow-lg shadow-green-900/20 flex items-center justify-center gap-2 transition transform active:scale-95 border border-green-500/50"
                                         >
-                                            <Eye size={16} /> ดูสลิปการโอนเงิน
+                                            <Check size={18} /> อนุมัติ (Approve)
                                         </button>
-                                    )}
+                                        <button
+                                            onClick={() => handleReject(payment._id)}
+                                            className="w-full md:w-auto px-6 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-300 hover:text-white rounded-lg font-bold border border-red-500/30 flex items-center justify-center gap-2 transition"
+                                        >
+                                            <X size={18} /> ปฏิเสธ (Reject)
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )
+                ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                        {/* History List */}
+                        {historyPayments.map((payment) => (
+                            <div key={payment._id} className="bg-white/5 border border-white/5 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6 opacity-80 hover:opacity-100 transition">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <h3 className="text-lg font-bold text-white">
+                                            {payment.user.displayName || payment.user.username}
+                                        </h3>
+                                        <span className={`px-2 py-0.5 rounded text-xs font-bold border ${payment.status === 'ACTIVE' ? 'bg-green-500/10 text-green-400 border-green-500/20' : payment.status === 'REJECTED' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-white/10 text-white/50 border-white/10'}`}>
+                                            {payment.status}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/60">
+                                        <span>แพ็กเกจ: <span className="text-white">{payment.planType}</span></span>
+                                        <span>ราคา: <span className="text-white">{payment.price} บาท</span></span>
+                                        <span>วันที่ทำรายการ: <span className="text-white/70">{new Date(payment.createdAt).toLocaleDateString('th-TH')} {new Date(payment.createdAt).toLocaleTimeString('th-TH')}</span></span>
+                                    </div>
                                 </div>
 
-                                <div className="flex-shrink-0 w-full md:w-auto flex flex-col gap-2">
+                                {payment.slipUrl && (
                                     <button
-                                        onClick={() => handleApprove(payment._id)}
-                                        className="w-full md:w-auto px-6 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold shadow-lg shadow-green-900/20 flex items-center justify-center gap-2 transition transform active:scale-95 border border-green-500/50"
+                                        onClick={() => setSelectedSlip(payment.slipUrl!)}
+                                        className="text-sm bg-black/20 hover:bg-black/40 text-white/70 hover:text-white px-4 py-2 rounded-lg flex items-center gap-2 transition border border-white/5 hover:border-white/10"
                                     >
-                                        <Check size={18} /> อนุมัติ (Approve)
+                                        <Eye size={16} /> ดูสลิป
                                     </button>
-                                    <button
-                                        onClick={() => handleReject(payment._id)}
-                                        className="w-full md:w-auto px-6 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-300 hover:text-white rounded-lg font-bold border border-red-500/30 flex items-center justify-center gap-2 transition"
-                                    >
-                                        <X size={18} /> ปฏิเสธ (Reject)
-                                    </button>
-                                </div>
+                                )}
                             </div>
                         ))}
+
+                        {historyPayments.length === 0 && (
+                            <div className="text-center py-12 text-white/30 text-sm">ยังไม่มีประวัติการชำระเงิน</div>
+                        )}
                     </div>
                 )}
             </main>
@@ -208,6 +278,35 @@ export default function PaymentsPage() {
                                 alt="Payment Slip"
                                 className="w-full h-auto max-h-[70vh] object-contain"
                             />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Payment Confirm Modal */}
+            {paymentConfirmDialog.isOpen && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <div className="bg-[#1e1b4b] border border-white/10 rounded-2xl w-full max-w-sm p-6 shadow-2xl relative">
+                        <h3 className="text-xl font-bold text-white mb-4 text-center">ยืนยันการดำเนินการ</h3>
+                        <p className="text-white/70 text-center mb-8">
+                            คุณแน่ใจหรือไม่ที่จะ <span className={`font-bold ${paymentConfirmDialog.action === 'APPROVE' ? 'text-green-400' : 'text-red-400'}`}>
+                                {paymentConfirmDialog.action === 'APPROVE' ? 'อนุมัติ (APPROVE)' : 'ปฏิเสธ (REJECT)'}
+                            </span> รายการชำระเงินนี้?
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setPaymentConfirmDialog({ isOpen: false, action: null, subscriptionId: null })}
+                                className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white transition font-medium"
+                            >
+                                ยกเลิก
+                            </button>
+                            <button
+                                onClick={handleConfirmAction}
+                                className={`flex-1 py-2.5 rounded-xl text-black font-bold transition shadow-lg ${paymentConfirmDialog.action === 'APPROVE' ? 'bg-green-500 hover:bg-green-400 shadow-green-500/20' : 'bg-red-500 hover:bg-red-400 shadow-red-500/20'}`}
+                            >
+                                ยืนยัน
+                            </button>
                         </div>
                     </div>
                 </div>
