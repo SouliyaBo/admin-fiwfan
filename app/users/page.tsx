@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE_URL, PORTAL_URL } from "../../lib/constants";
 import { getImageUrl } from "../../lib/images";
-import { Search, ShieldAlert, CheckCircle, Ban, Loader2, User as UserIcon, Shield, X, Eye, Image as ImageIcon, ExternalLink } from "lucide-react";
+import { Search, ShieldAlert, CheckCircle, Ban, Loader2, User as UserIcon, Shield, X, Eye, Image as ImageIcon, ExternalLink, Pencil, Save } from "lucide-react";
 
 export default function UsersPage() {
     const router = useRouter();
@@ -40,7 +40,7 @@ export default function UsersPage() {
             const token = localStorage.getItem("token");
             const queryParams = new URLSearchParams({
                 page: page.toString(),
-                limit: "20", // Pagination per tab
+                limit: "1000", // Pagination per tab
                 search: search,
                 role: activeTab // Filter by active tab role
             });
@@ -202,6 +202,90 @@ export default function UsersPage() {
 
     const [selectedUser, setSelectedUser] = useState<any>(null); // For viewing details
 
+    const [editUserModal, setEditUserModal] = useState<{ isOpen: boolean; user: any | null }>({
+        isOpen: false,
+        user: null
+    });
+
+    const [editFormData, setEditFormData] = useState<any>({});
+
+    const openEditUserModal = (user: any) => {
+        setEditUserModal({ isOpen: true, user });
+        setEditFormData({
+            displayName: user.displayName || "",
+            username: user.username || "",
+            email: user.email || "",
+            password: "", // Default empty
+            role: user.role || "USER",
+            phoneNumber: user.phoneNumber || "",
+            lineId: user.lineId || "",
+            isActive: user.isActive,
+            // Creator specific
+            isVerified: user.creatorProfile?.isVerified ?? user.isVerified ?? false,
+            isHot: user.creatorProfile?.isHot || false,
+            rankingPriority: user.creatorProfile?.rankingPriority || 0,
+            verificationStatus: user.creatorProfile?.verificationStatus || 'NONE'
+        });
+    };
+
+    const handleUpdateUser = async () => {
+        if (!editUserModal.user) return;
+
+        try {
+            setProcessingId(editUserModal.user._id);
+            const token = localStorage.getItem("token");
+
+            const payload = {
+                ...editFormData,
+                creatorProfile: editUserModal.user.role === 'CREATOR' || editFormData.role === 'CREATOR' ? {
+                    isVerified: editFormData.isVerified,
+                    isHot: editFormData.isHot,
+                    rankingPriority: Number(editFormData.rankingPriority),
+                    verificationStatus: editFormData.verificationStatus
+                } : undefined
+            };
+
+            const res = await fetch(`${API_BASE_URL}/users/${editUserModal.user._id}/admin`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                const updatedUser = await res.json();
+
+                // Update local list
+                setUsers(prev => prev.map(u => u._id === updatedUser._id ? {
+                    ...updatedUser,
+                    // Preserve populated creatorProfile if the response doesn't have it fully populated (it might have user ID)
+                    // The controller returns the updated user, but without population usually unless specified.
+                    // We might need to refetch or manually merge.
+                    // Let's refetch to be safe or manually merge if we trust the payload.
+                    // For simplicity, let's merge what we changed.
+                    creatorProfile: u.role === 'CREATOR' ? {
+                        ...u.creatorProfile,
+                        ...payload.creatorProfile
+                    } : undefined
+                } : u));
+
+                setEditUserModal({ isOpen: false, user: null });
+                // Optional: Refetch to be 100% sure
+                fetchUsers();
+            } else {
+                const error = await res.json();
+                alert(`Error: ${error.message}`);
+            }
+        } catch (error) {
+            console.error("Failed to update user", error);
+            alert("Failed to update user");
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
     // ... existing functions ...
 
     return (
@@ -319,6 +403,14 @@ export default function UsersPage() {
                                                     title="ดูรายละเอียด"
                                                 >
                                                     <Eye size={16} />
+                                                </button>
+
+                                                <button
+                                                    onClick={() => openEditUserModal(user)}
+                                                    className="p-1.5 rounded text-xs font-bold transition flex items-center gap-1 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20"
+                                                    title="แก้ไขข้อมูล"
+                                                >
+                                                    <Pencil size={16} />
                                                 </button>
 
                                                 {user.role === 'CREATOR' && user.creatorProfile && (
@@ -757,6 +849,172 @@ export default function UsersPage() {
                             >
                                 ยืนยัน
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Edit User Modal */}
+            {editUserModal.isOpen && editUserModal.user && (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <div className="bg-[#1e1b4b] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col">
+                        <div className="flex justify-between items-center p-6 border-b border-white/10 sticky top-0 bg-[#1e1b4b] z-10">
+                            <div>
+                                <h3 className="text-xl font-bold text-white">แก้ไขข้อมูล (Edit User)</h3>
+                                <p className="text-white/60 text-sm">ID: {editUserModal.user._id}</p>
+                            </div>
+                            <button onClick={() => setEditUserModal({ isOpen: false, user: null })} className="p-2 hover:bg-white/10 rounded-full transition"><X /></button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            {/* General Info */}
+                            <div className="space-y-4">
+                                <h4 className="text-white font-bold border-b border-white/10 pb-2">ข้อมูลทั่วไป (General)</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-white/50">Display Name</label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.displayName}
+                                            onChange={e => setEditFormData({ ...editFormData, displayName: e.target.value })}
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-white/50">Username</label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.username}
+                                            onChange={e => setEditFormData({ ...editFormData, username: e.target.value })}
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-white/50">Email</label>
+                                        <input
+                                            type="email"
+                                            value={editFormData.email}
+                                            onChange={e => setEditFormData({ ...editFormData, email: e.target.value })}
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-white/50">Password (Leave empty to keep current)</label>
+                                        <input
+                                            type="password"
+                                            value={editFormData.password}
+                                            onChange={e => setEditFormData({ ...editFormData, password: e.target.value })}
+                                            placeholder="New Password"
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-white/50">Role</label>
+                                        <select
+                                            value={editFormData.role}
+                                            onChange={e => setEditFormData({ ...editFormData, role: e.target.value })}
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                        >
+                                            <option value="USER">USER</option>
+                                            <option value="CREATOR">CREATOR</option>
+                                            <option value="ADMIN">ADMIN</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-white/50">Phone</label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.phoneNumber}
+                                            onChange={e => setEditFormData({ ...editFormData, phoneNumber: e.target.value })}
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-white/50">Line ID</label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.lineId}
+                                            onChange={e => setEditFormData({ ...editFormData, lineId: e.target.value })}
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-4">
+                                        <input
+                                            type="checkbox"
+                                            id="isActive"
+                                            checked={editFormData.isActive}
+                                            onChange={e => setEditFormData({ ...editFormData, isActive: e.target.checked })}
+                                            className="w-4 h-4 rounded border-white/10 bg-black/20"
+                                        />
+                                        <label htmlFor="isActive" className="text-sm text-white">Active (Unbanned)</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Creator Specific */}
+                            {(editFormData.role === 'CREATOR' || editUserModal.user.role === 'CREATOR') && (
+                                <div className="space-y-4">
+                                    <h4 className="text-pink-400 font-bold border-b border-pink-500/20 pb-2">ข้อมูลครีเอเตอร์ (Creator Data)</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <label className="text-xs text-white/50">Verification Status</label>
+                                            <select
+                                                value={editFormData.verificationStatus}
+                                                onChange={e => setEditFormData({ ...editFormData, verificationStatus: e.target.value })}
+                                                className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                            >
+                                                <option value="NONE">NONE</option>
+                                                <option value="PENDING">PENDING</option>
+                                                <option value="APPROVED">APPROVED</option>
+                                                <option value="REJECTED">REJECTED</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-xs text-white/50">Ranking Priority</label>
+                                            <input
+                                                type="number"
+                                                value={editFormData.rankingPriority}
+                                                onChange={e => setEditFormData({ ...editFormData, rankingPriority: e.target.value })}
+                                                className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                id="isVerified"
+                                                checked={editFormData.isVerified}
+                                                onChange={e => setEditFormData({ ...editFormData, isVerified: e.target.checked })}
+                                                className="w-4 h-4 rounded border-white/10 bg-black/20"
+                                            />
+                                            <label htmlFor="isVerified" className="text-sm text-white">Is Verified (Public Badge)</label>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                id="isHot"
+                                                checked={editFormData.isHot}
+                                                onChange={e => setEditFormData({ ...editFormData, isHot: e.target.checked })}
+                                                className="w-4 h-4 rounded border-white/10 bg-black/20"
+                                            />
+                                            <label htmlFor="isHot" className="text-sm text-white">Is Hot (Featured)</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="pt-4 flex justify-end gap-3">
+                                <button
+                                    onClick={() => setEditUserModal({ isOpen: false, user: null })}
+                                    className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold transition"
+                                >
+                                    ยกเลิก
+                                </button>
+                                <button
+                                    onClick={handleUpdateUser}
+                                    className="px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white rounded-xl text-sm font-bold transition flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                                >
+                                    <Save size={16} /> บันทึกการเปลี่ยนแปลง
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
