@@ -25,7 +25,7 @@ export default function LoginPage() {
 
             if (res.ok) {
                 // Check Role: Must be ADMIN
-                if (data.user.role !== "ADMIN") {
+                if (data.user.role !== "ADMIN" && data.user.role !== "SUPER_ADMIN") {
                     setError("ไม่มีสิทธิ์เข้าถึง: สำหรับผู้ดูแลระบบเท่านั้น");
                     return;
                 }

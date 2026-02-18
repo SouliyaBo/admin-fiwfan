@@ -23,7 +23,7 @@ export default function ReportsPage() {
         }
 
         const parsedUser = JSON.parse(storedUser);
-        if (parsedUser.role !== 'ADMIN') {
+        if (parsedUser.role !== 'ADMIN' && parsedUser.role !== 'SUPER_ADMIN') {
             localStorage.clear();
             router.push("/login");
             return;

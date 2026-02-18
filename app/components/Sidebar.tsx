@@ -2,43 +2,60 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { LayoutDashboard, Wallet, Users, Settings, Bell } from "lucide-react";
 
 export default function Sidebar() {
     const pathname = usePathname();
+
+
+    // Load user from localStorage
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+            setUser(JSON.parse(storedUser));
+        }
+    }, [pathname]); // Update when path changes to ensure fresh state if needed
 
     const menuItems = [
         {
             title: "ภาพรวม (Overview)",
             icon: <LayoutDashboard size={20} />,
             href: "/",
+            permission: null // Public for all admins
         },
         {
             title: "ตรวจสอบการชำระเงิน",
             icon: <Wallet size={20} />,
             href: "/payments",
+            permission: "manage_payments"
         },
         {
             title: "จัดการการรายงาน (Reports)",
             icon: <Bell size={20} />,
             href: "/reports",
+            permission: "manage_reports"
         },
         {
             title: "จัดการผู้ใช้งาน (Users)",
             icon: <Users size={20} />,
             href: "/users",
+            permission: "manage_users"
         },
         {
             title: "จัดการแพ็กเกจ (Plans)",
-            icon: <Wallet size={20} />, // Reusing Wallet icon or maybe another one like Sparkles? Let's use Wallet for now or maybe Star if available, but Wallet fits 'Plans/Pricing'
+            icon: <Wallet size={20} />,
             href: "/plans",
+            permission: "manage_plans"
         },
         {
             title: "ตั้งค่าระบบ",
             icon: <Settings size={20} />,
             href: "/settings",
+            permission: "manage_settings"
         },
-        // Add more menu items here as needed
     ];
 
     return (
@@ -58,6 +75,18 @@ export default function Sidebar() {
                     เมนูหลัก
                 </h3>
                 {menuItems.map((item, index) => {
+                    // Filter Logic
+                    if (!user) return null; // Wait for load
+
+                    // Check if Super Admin
+                    const isSuperAdmin = user.role === 'SUPER_ADMIN';
+
+                    if (!isSuperAdmin && item.permission) {
+                        // Check specific permission
+                        const hasPermission = user.permissions?.includes(item.permission);
+                        if (!hasPermission) return null;
+                    }
+
                     const isActive = pathname === item.href;
                     return (
                         <Link
@@ -75,6 +104,22 @@ export default function Sidebar() {
                         </Link>
                     );
                 })}
+
+                {/* Super Admin Only Menu */}
+                {user && user.role === 'SUPER_ADMIN' && (
+                    <Link
+                        href="/admins"
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${pathname === "/admins"
+                            ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
+                            : "text-white/60 hover:bg-white/5 hover:text-white"
+                            }`}
+                    >
+                        <span className={pathname === "/admins" ? "text-white" : "text-white/50 group-hover:text-white"}>
+                            <Users size={20} />
+                        </span>
+                        <span className="font-medium text-sm">จัดการผู้ดูแลระบบ (Admins)</span>
+                    </Link>
+                )}
             </div>
         </aside>
     );

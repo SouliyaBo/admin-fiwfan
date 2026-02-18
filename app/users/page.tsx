@@ -26,7 +26,7 @@ export default function UsersPage() {
             return;
         }
         const parsedUser = JSON.parse(storedUser);
-        if (parsedUser.role !== 'ADMIN') {
+        if (parsedUser.role !== 'ADMIN' && parsedUser.role !== 'SUPER_ADMIN') {
             router.push("/login");
             return;
         }
