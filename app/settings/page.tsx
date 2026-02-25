@@ -140,6 +140,14 @@ function PaymentSettings() {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState<string | null>(null);
 
+    // Names and Flags
+    const [nameTh, setNameTh] = useState("Thai QR (PromptPay)");
+    const [flagTh, setFlagTh] = useState("🇹🇭");
+    const [nameLa, setNameLa] = useState("Lao QR (OnePay)");
+    const [flagLa, setFlagLa] = useState("🇱🇦");
+    const [nameWc, setNameWc] = useState("WeChat Pay (จีน)");
+    const [flagWc, setFlagWc] = useState("🇨🇳");
+
     useEffect(() => {
         fetchQRs();
     }, []);
@@ -158,12 +166,26 @@ function PaymentSettings() {
             const rLak = data.find((s: any) => s.key === 'exchange_rate_lak');
             const rCny = data.find((s: any) => s.key === 'exchange_rate_cny');
 
+            const nTh = data.find((s: any) => s.key === 'payment_name_th');
+            const fTh = data.find((s: any) => s.key === 'payment_flag_th');
+            const nLa = data.find((s: any) => s.key === 'payment_name_la');
+            const fLa = data.find((s: any) => s.key === 'payment_flag_la');
+            const nWc = data.find((s: any) => s.key === 'payment_name_wc');
+            const fWc = data.find((s: any) => s.key === 'payment_flag_wc');
+
             if (th) setQrTh(th.value);
             if (la) setQrLa(la.value);
             if (wc) setQrWeChat(wc.value);
 
             if (rLak) setRateLak(rLak.value);
             if (rCny) setRateCny(rCny.value);
+
+            if (nTh) setNameTh(nTh.value);
+            if (fTh) setFlagTh(fTh.value);
+            if (nLa) setNameLa(nLa.value);
+            if (fLa) setFlagLa(fLa.value);
+            if (nWc) setNameWc(nWc.value);
+            if (fWc) setFlagWc(fWc.value);
         } catch (error) {
             console.error("Failed to fetch payment settings", error);
         } finally {
@@ -171,7 +193,7 @@ function PaymentSettings() {
         }
     };
 
-    const handleSaveRate = async (key: string, value: string, description: string) => {
+    const handleSaveSetting = async (key: string, value: string, description: string) => {
         setIsSavingRate(true);
         try {
             const token = localStorage.getItem("token");
@@ -189,9 +211,9 @@ function PaymentSettings() {
             });
 
             if (res.ok) {
-                toast.success("บันทึกเรทเงินสำเร็จ (Rate Saved)");
+                toast.success("บันทึกข้อมูลสำเร็จ (Saved)");
             } else {
-                toast.error("Failed to save rate");
+                toast.error("Failed to save");
             }
         } catch (error) {
             console.error("Error saving rate:", error);
@@ -246,9 +268,33 @@ function PaymentSettings() {
         <div className="space-y-8">
             {/* THAI QR */}
             <div className="border border-white/5 bg-white/5 rounded-xl p-6">
-                <label className="block text-lg font-medium text-white mb-4 flex items-center gap-2">
-                    <span className="text-2xl">🇹🇭</span> Thai QR (PromptPay)
-                </label>
+                <div className="flex items-center justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={flagTh}
+                            onChange={(e) => setFlagTh(e.target.value)}
+                            className="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-2xl w-16 text-center focus:outline-none focus:border-blue-500"
+                            placeholder="Emoji"
+                        />
+                        <input
+                            type="text"
+                            value={nameTh}
+                            onChange={(e) => setNameTh(e.target.value)}
+                            className="bg-black/30 border border-white/10 rounded-lg px-3 py-1 text-lg font-medium text-white w-48 focus:outline-none focus:border-blue-500"
+                        />
+                        <button
+                            onClick={() => {
+                                handleSaveSetting('payment_flag_th', flagTh, 'Flag Emoji for Thai Payment');
+                                handleSaveSetting('payment_name_th', nameTh, 'Name for Thai Payment');
+                            }}
+                            disabled={isSavingRate}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-2"
+                        >
+                            <Save size={14} /> Save Name/Flag
+                        </button>
+                    </div>
+                </div>
                 <div className="flex flex-col md:flex-row gap-6">
                     <div className="w-40 h-40 bg-black/40 rounded-xl flex items-center justify-center overflow-hidden border border-white/10 shrink-0 relative group">
                         {qrTh ? (
@@ -290,10 +336,32 @@ function PaymentSettings() {
 
             {/* LAO QR */}
             <div className="border border-white/5 bg-white/5 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <label className="block text-lg font-medium text-white flex items-center gap-2">
-                        <span className="text-2xl">🇱🇦</span> Lao QR (OnePay)
-                    </label>
+                <div className="flex items-center justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={flagLa}
+                            onChange={(e) => setFlagLa(e.target.value)}
+                            className="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-2xl w-16 text-center focus:outline-none focus:border-blue-500"
+                            placeholder="Emoji"
+                        />
+                        <input
+                            type="text"
+                            value={nameLa}
+                            onChange={(e) => setNameLa(e.target.value)}
+                            className="bg-black/30 border border-white/10 rounded-lg px-3 py-1 text-lg font-medium text-white w-48 focus:outline-none focus:border-blue-500"
+                        />
+                        <button
+                            onClick={() => {
+                                handleSaveSetting('payment_flag_la', flagLa, 'Flag Emoji for Lao Payment');
+                                handleSaveSetting('payment_name_la', nameLa, 'Name for Lao Payment');
+                            }}
+                            disabled={isSavingRate}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-2"
+                        >
+                            <Save size={14} /> Save Name/Flag
+                        </button>
+                    </div>
                 </div>
 
                 {/* Exchange Rate Input */}
@@ -310,7 +378,7 @@ function PaymentSettings() {
                         />
                         <span className="text-white font-medium">LAK (Kip)</span>
                         <button
-                            onClick={() => handleSaveRate('exchange_rate_lak', rateLak, 'Exchange Rate: 1 THB to LAK')}
+                            onClick={() => handleSaveSetting('exchange_rate_lak', rateLak, 'Exchange Rate: 1 THB to LAK')}
                             disabled={isSavingRate}
                             className="ml-auto bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
                         >
@@ -361,10 +429,32 @@ function PaymentSettings() {
 
             {/* WECHAT QR */}
             <div className="border border-white/5 bg-white/5 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <label className="block text-lg font-medium text-white flex items-center gap-2">
-                        <span className="text-2xl">🇨🇳</span> WeChat Pay (จีน)
-                    </label>
+                <div className="flex items-center justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={flagWc}
+                            onChange={(e) => setFlagWc(e.target.value)}
+                            className="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-2xl w-16 text-center focus:outline-none focus:border-green-500"
+                            placeholder="Emoji"
+                        />
+                        <input
+                            type="text"
+                            value={nameWc}
+                            onChange={(e) => setNameWc(e.target.value)}
+                            className="bg-black/30 border border-white/10 rounded-lg px-3 py-1 text-lg font-medium text-white w-48 focus:outline-none focus:border-green-500"
+                        />
+                        <button
+                            onClick={() => {
+                                handleSaveSetting('payment_flag_wc', flagWc, 'Flag Emoji for WeChat Payment');
+                                handleSaveSetting('payment_name_wc', nameWc, 'Name for WeChat Payment');
+                            }}
+                            disabled={isSavingRate}
+                            className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-2"
+                        >
+                            <Save size={14} /> Save Name/Flag
+                        </button>
+                    </div>
                 </div>
 
                 {/* Exchange Rate Input */}
@@ -381,7 +471,7 @@ function PaymentSettings() {
                         />
                         <span className="text-white font-medium">THB (Baht)</span>
                         <button
-                            onClick={() => handleSaveRate('exchange_rate_cny', rateCny, 'Exchange Rate: 1 CNY to THB')}
+                            onClick={() => handleSaveSetting('exchange_rate_cny', rateCny, 'Exchange Rate: 1 CNY to THB')}
                             disabled={isSavingRate}
                             className="ml-auto bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
                         >
