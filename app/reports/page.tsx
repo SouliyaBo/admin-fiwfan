@@ -167,9 +167,9 @@ export default function ReportsPage() {
 
                                                 <div>
                                                     <div className="text-sm text-white/90 font-bold">
-                                                        {report.targetType === 'REVIEW' && report.target?.user ?
-                                                            (report.target.user.displayName || report.target.user.username) :
-                                                            (report.target?.displayName || report.target?.username || "Unknown")
+                                                        {report.targetType === 'REVIEW' ?
+                                                            (report.target?.user ? (report.target.user.displayName || report.target.user.username) : "Review Deleted") :
+                                                            (report.target?.displayName || report.target?.username || "Unknown / Deleted")
                                                         }
                                                     </div>
                                                     <div className="text-xs text-white/50 mb-1">
@@ -178,7 +178,7 @@ export default function ReportsPage() {
                                                     </div>
 
                                                     {/* Link to Profile */}
-                                                    {report.targetType === 'REVIEW' && (
+                                                    {report.targetType === 'REVIEW' && report.target?.user?._id && (
                                                         <a
                                                             href={`${PORTAL_URL}/sideline/${report.target.user._id}`}
                                                             target="_blank"
@@ -250,7 +250,11 @@ export default function ReportsPage() {
                         </h3>
 
                         <div className="bg-white/5 p-4 rounded-xl mb-6 text-sm text-white/70">
-                            คุณกำลังจัดการรายงานของ: <span className="text-white font-bold">{selectedReport.target?.displayName || selectedReport.target?.username || "Unknown"}</span>
+                            คุณกำลังจัดการรายงานของ: <span className="text-white font-bold">
+                                {selectedReport.targetType === 'REVIEW' ?
+                                    (selectedReport.target?.user ? (selectedReport.target.user.displayName || selectedReport.target.user.username) : "Review Deleted") :
+                                    (selectedReport.target?.displayName || selectedReport.target?.username || "Unknown")}
+                            </span>
                             <br />
                             ข้อหา: <span className="text-white font-bold">{
                                 {
@@ -264,21 +268,33 @@ export default function ReportsPage() {
                         </div>
 
                         <div className="space-y-3">
-                            <button
-                                onClick={() => updateReportStatus(selectedReport._id, 'RESOLVED', 'HIDE_PROFILE')}
-                                className="w-full bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 border border-yellow-500/20 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                                ซ่อนโปรไฟล์ (Soft Ban)
-                            </button>
+                            {selectedReport.targetType === 'REVIEW' ? (
+                                <button
+                                    onClick={() => updateReportStatus(selectedReport._id, 'RESOLVED', 'BAN_REVIEW')}
+                                    className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                                    ลบรีวิวนี้ (Delete Review)
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => updateReportStatus(selectedReport._id, 'RESOLVED', 'HIDE_PROFILE')}
+                                        className="w-full bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 border border-yellow-500/20 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                        ซ่อนโปรไฟล์ (Soft Ban)
+                                    </button>
 
-                            <button
-                                onClick={() => updateReportStatus(selectedReport._id, 'RESOLVED', 'BAN_USER')}
-                                className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-                                ระงับการใช้งาน (Hard Ban)
-                            </button>
+                                    <button
+                                        onClick={() => updateReportStatus(selectedReport._id, 'RESOLVED', 'BAN_USER')}
+                                        className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                                        ระงับการใช้งาน (Hard Ban)
+                                    </button>
+                                </>
+                            )}
 
                             <div className="h-px bg-white/10 my-2"></div>
 
